@@ -23,19 +23,15 @@ const CONFIG = {
     leilao: "1480908242908483676",
     parcerias: "1479629722685145181",
   },
-
   canais: {
     anuncios: "1479629789865312360",
   },
-
   logs: {
     geral: "1488129344537759786",
     parceria: "1487910575370403870",
   },
-
   staff: "1487928527952023562",
-
-  punicaoTempo: 10 * 60 * 1000, // 10 min
+  punicaoTempo: 10 * 60 * 1000,
 };
 
 // ===== CARGOS =====
@@ -59,9 +55,23 @@ const CARGOS = {
 let contadores = {};
 let canaisLogs = {};
 
+// 🔥 CARREGAR JSON (CORREÇÃO)
+try {
+  if (fs.existsSync("dados.json")) {
+    contadores = JSON.parse(fs.readFileSync("dados.json"));
+  }
+} catch (err) {
+  console.log("Erro ao carregar dados.json:", err.message);
+  contadores = {};
+}
+
 // ===== SALVAR =====
 function salvar() {
-  fs.writeFileSync("dados.json", JSON.stringify(contadores, null, 2));
+  try {
+    fs.writeFileSync("dados.json", JSON.stringify(contadores, null, 2));
+  } catch (err) {
+    console.log("Erro ao salvar dados:", err.message);
+  }
 }
 setInterval(salvar, 30000);
 
@@ -103,7 +113,6 @@ async function processarPing(message) {
   const member = message.member;
   if (!member || !message.channel.parentId) return;
 
-  // ignora staff
   if (member.roles.cache.has(CONFIG.staff)) return;
 
   let tipo = null;
@@ -121,12 +130,10 @@ async function processarPing(message) {
   const key = `${message.author.id}_${tipo}`;
   contadores[key] = (contadores[key] || 0) + 1;
 
-  // aviso
   if (contadores[key] === limite) {
     message.reply("⚠️ Você atingiu o limite de pings!");
   }
 
-  // embed log
   const embed = new EmbedBuilder()
     .setColor("#00ff88")
     .setTitle("📢 Ping Detectado")
@@ -144,7 +151,6 @@ async function processarPing(message) {
     canalDestino.send({ embeds: [embed] }).catch(() => {});
   }
 
-  // punição
   if (contadores[key] > limite) {
     try {
       if (
